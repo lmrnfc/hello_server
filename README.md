@@ -5,4 +5,4 @@ linux run command:
 ./builds/hello_server_x86_64-unknown-linux-gnu
 
 windows run command:
-./builds/hello_server_x86_64-pc-windows-msvc
+./builds/hello_server.exe
