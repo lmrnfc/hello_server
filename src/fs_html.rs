@@ -73,10 +73,14 @@ impl FilesHtml {
         match &self.dir_entries {
             Ok(entries) => {
                 for entry in entries {
+                    let sys_path = format!("{}/{}", self.syspath(), entry.0);
+                    let metadata_len = fs::metadata(sys_path).map_or(0, |v| v.len());                  
                     let entry_str = format!(
-                        "<p><a href=\"{}/{}\">{}{}</a></p>",
+                        "<p><a href=\"{}/{}\" {} bytes_size=\"{}\">{}{}</a></p>",
                         &self.path,
                         entry.0,
+                        if !entry.1 { "" } else { "download class=\"dl_link\"" },// is folder?
+                        metadata_len.to_string(),
                         if !entry.1 { "&#x1F4C1 " } else { "" },
                         entry.0
                     );
@@ -85,7 +89,9 @@ impl FilesHtml {
             },
             Err(e) => return e.to_owned(),
         };
-
+        body_html.push_str("
+        <button onclick=\"DownloadAll()\">DL all</button>
+        ");
         body_html.push_str("
         <hr></hr>
         <form method=\"post\" enctype=\"multipart/form-data\">
@@ -97,7 +103,34 @@ impl FilesHtml {
                 <button>Upload</button>
             </div>
         </form>
-        ");
+        "); 
+        body_html.push_str("
+        <script>
+          const mega_bytes_per_second = 7;
+          const bytes_per_second = 1024 * 1024 * mega_bytes_per_second;
+          function dl_link(link) {
+            link.setAttribute(\"download\", \"\");
+            link.click();
+            link.removeAttribute(\"download\")
+          };
+          function DownloadAll(e) {
+            const links = document.getElementsByClassName(\"dl_link\");
+            let index = 0;
+            function download_sequence() {
+              let link = links[index];
+              let time = 1000 * link.getAttribute(\"bytes_size\") / bytes_per_second;
+              console.log(link.innerHTML);
+              console.log(time);              
+              dl_link(link);
+              index++;
+              if (index < links.length) {
+                setTimeout(download_sequence, time)
+              }
+            };
+            download_sequence();
+          }
+        </script>
+        ");               
         html.push_str(body_html.as_str());
 
         html.push_str("</body>");       
